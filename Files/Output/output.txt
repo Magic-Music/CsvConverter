@@ -1,0 +1,7 @@
+INSERT INTO `people` VALUES('Bob', 12, 'London', 3);
+INSERT INTO `people` VALUES('Louise', 23, 'Manchester', 6);
+INSERT INTO `people` VALUES('Fred', 42, 'York', 4);
+INSERT INTO `people` VALUES('Sally', 9, 'Liverpool', 5);
+INSERT INTO `people` VALUES('Richard', 36, 'Bristol', 7);
+INSERT INTO `people` VALUES('Georgina', 51, 'Glasgow', 8);
+INSERT INTO `people` VALUES('Zaphod', 1004, 'Betelgeuse', 6);
