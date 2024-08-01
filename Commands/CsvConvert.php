@@ -8,7 +8,7 @@ use Services\CsvConversionService;
 class CsvConvert extends Command
 {
     public string $command = "convert";
-    public string $signature = "converter ?input ?output --test:t";
+    public string $signature = "converter ?input ?output --test|t";
 
     public function __construct(private CsvConversionService $csvConversionService)
     {

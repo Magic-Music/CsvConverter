@@ -8,8 +8,8 @@ use Resources\Conversion;
 class CsvConversionService
 {
     private Conversion $converterScript;
-    private string $inputFile = "input.csv";
-    private string $outputFile = "output.txt";
+    private string $inputFile;
+    private string $outputFile;
 
     public function __construct(
         private CsvReaderService $csvReaderService,
@@ -27,7 +27,10 @@ class CsvConversionService
             new InvalidConverterException("Invalid converter script $file")
         );
 
-        $this->converterScript = new $class;
+        $this->converterScript = create($class);
+
+        $this->setInputFile($this->converterScript->config->inputFile);
+        $this->setOutputFile($this->converterScript->config->outputFile);
     }
 
     public function setInputFile(string $file): void

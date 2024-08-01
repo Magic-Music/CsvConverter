@@ -7,9 +7,9 @@ use Resources\Conversion;
 class People extends Conversion
 {
 
-    protected function getOutputStatements(): string|array
+    protected function configure(): void
     {
-        return [
+        $this->config->statements = [
             "INSERT INTO `people` VALUES(':~name~:', :~age~:, ':~city~:', :~lengthOfName~:);\n"
         ];
     }

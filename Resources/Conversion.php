@@ -2,38 +2,52 @@
 
 namespace Resources;
 
+use Entities\ConversionConfig;
+use Exceptions\InvalidConverterException;
+
 abstract class Conversion
 {
     //Override these in your conversion script if required
-    protected array $delimiters = [':~', '~:'];
+    private const DEFAULT_CONFIG = [
+        'inputFile' => 'input.csv',
+        'outputFile' => 'output.txt',
+        'startDelimiter' => ':~',
+        'endDelimiter' => '~:',
+    ];
 
-    private array $row;
     private array $replacers = [];
 
-    abstract protected function getOutputStatements(): string|array;
+    /**
+     * Set conversion output statements
+     * Update configurable conversion script parameters
+     */
+    abstract protected function configure(): void;
 
-    public function __construct()
+    public function __construct(public ConversionConfig $config)
     {
-        /**
-         * Build an array of all replacers in all output statements
-         * Key = replacer. Value = true if there is a conversion method
-         */
+        $this->config->set(self::DEFAULT_CONFIG);
+        $this->configure();
+
+        throw_if(
+            !$this->config->statements,
+            new InvalidConverterException("No output statements set on conversion script")
+        );
+
         $this->parsePlaceholders();
     }
 
     public function convertRow(array $row): string
     {
-        $this->row = $row;
         $output = '';
 
-        foreach (array_wrap($this->getOutputStatements()) as $statement) {
+        foreach ($this->config->statements as $statement) {
             foreach ($this->replacers as $replacer => $method) {
                 $replaceText = $method
                     ? $this->$replacer($row)
                     : $row[strtolower($replacer)];
 
                 $statement = str_replace(
-                    $this->delimiters[0] . $replacer . $this->delimiters[1],
+                    $this->config->startDelimiter . $replacer . $this->config->endDelimiter,
                     $replaceText,
                     $statement
                 );
@@ -46,7 +60,7 @@ abstract class Conversion
 
     private function parsePlaceholders(): void
     {
-        foreach (array_wrap($this->getOutputStatements()) as $statement) {
+        foreach ($this->config->statements as $statement) {
             do {
                 $replacer = $this->getNextReplacer($statement);
                 if (!$replacer) {
@@ -60,17 +74,15 @@ abstract class Conversion
 
     private function getNextReplacer(string &$statement): string|false
     {
-        $start = strpos($statement, $this->delimiters[0]) + 2;
-        $end = strpos($statement, $this->delimiters[1]);
+        $start = strpos($statement, $this->config->startDelimiter) + 2;
+        $end = strpos($statement, $this->config->endDelimiter);
         if (!$start || !$end) {
             return false;
         }
 
         $replacer = substr($statement, $start, $end - $start);
-        $statement = str_replace($this->delimiters[0] . $replacer . $this->delimiters[1], '', $statement);
+        $statement = str_replace($this->config->startDelimiter . $replacer . $this->config->endDelimiter, '', $statement);
 
         return $replacer;
     }
-
-
 }
