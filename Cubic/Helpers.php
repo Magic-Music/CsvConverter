@@ -50,9 +50,17 @@ function array_wrap(string|array|null $subject): array
     return $subject;
 }
 
-function app_root(): string
+function app_root(?string $folder): string
 {
-    return create(File::class)->rootFolder();
+    return create(File::class)->rootFolder()
+        . ($folder ? (trim($folder, "/\\") . DIRECTORY_SEPARATOR) : '') ;
+}
+
+function file_path(string $fileName): string|bool
+{
+    $file = app_root('Files') . $fileName;
+
+    return file_exists($file) ? $file : false;
 }
 
 function array_dot(array $array, string $dotKey): mixed
@@ -71,4 +79,9 @@ function array_dot(array $array, string $dotKey): mixed
 function config($key): mixed
 {
     return create(Config::class)->get($key);
+}
+
+function last_char(string $string, $numberOfCharacters = 1): string
+{
+    return substr($string, abs($numberOfCharacters) * -1);
 }

@@ -5,12 +5,18 @@ namespace Cubic\Cli;
 abstract class Command
 {
     public string $command;
-    public string $signature;
+    public string $signature = '';
 
     protected array $arguments = [];
     protected array $options = [];
+    protected string $cliCommand;
 
     abstract public function handle();
+
+    public function setCliCommand(string $command): void
+    {
+        $this->cliCommand = $command;
+    }
 
     public function setArgument(string $key, string $value): void
     {

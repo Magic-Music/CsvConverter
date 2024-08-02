@@ -5,11 +5,13 @@ namespace Cubic\Cli;
 use Cubic\Exceptions\CommandMissingSignatureException;
 use Cubic\Exceptions\CommandNotFoundException;
 use Cubic\Exceptions\CommandNotSpecifiedException;
+use Cubic\Exceptions\InvalidCommandCacheException;
 use Cubic\File;
 
 class Cli
 {
     private const LOG_END_COLOURS = "\e[" . CliColours::DEFAULT . ";" . CliColours::BG_DEFAULT . "m";
+    private const COMMAND_CACHE_FILENAME = 'command-cache';
 
     private array $commands = [];
     private array $argv;
@@ -42,8 +44,31 @@ class Cli
      */
     public function registerCommands(): void
     {
+        if ($this->registerCommandsFromCache()) {
+            return;
+        }
+
         $this->registerCommandsInFolder('Cubic\Commands');
         $this->registerCommandsInFolder('Commands');
+    }
+
+    public function cacheCommands(): int
+    {
+        file_put_contents(
+            app_root('Files') . self::COMMAND_CACHE_FILENAME,
+            serialize($this->commands)
+        );
+
+        return count($this->commands);
+    }
+
+    public function clearCommandCache(): void
+    {
+        $filename = file_path(self::COMMAND_CACHE_FILENAME);
+
+        if ($filename) {
+            unlink ($filename);
+        }
     }
 
     /**
@@ -68,6 +93,26 @@ class Cli
     }
 
     /**
+     * Check to see if commands have been cached.
+     * If so, use the cache and return true.
+     */
+    private function registerCommandsFromCache(): bool
+    {
+        $cacheFile = file_path(self::COMMAND_CACHE_FILENAME);
+        if (!$cacheFile) {
+            return false;
+        }
+
+        try {
+            $this->commands = unserialize(file_get_contents($cacheFile));
+
+            return true;
+        } catch (\Exception $e) {
+            throw new InvalidCommandCacheException("Command cache is invalid");
+        }
+    }
+
+    /**
      * Recursively search the given folder for php files,
      * check the class for a command signature and store
      * each signature with the name of the command class
@@ -79,14 +124,16 @@ class Cli
         try {
             foreach ($files as $file) {
                 $class = $file['path'] . '\\' . str_replace('.php', '', $file['file']);
-                $command = get_class_vars($class)['command'] ?? null;
+                $commands = get_class_vars($class)['command'] ?? null;
 
                 throw_if(
-                    !$command,
+                    !$commands,
                     new CommandMissingSignatureException("Command $class missing 'command' property")
                 );
 
-                $this->commands[$command] = $class;
+                foreach(explode('|', $commands) as $command) {
+                    $this->commands[$command] = $class;
+                }
             }
         }
         catch (CommandMissingSignatureException $e) {
@@ -122,6 +169,7 @@ class Cli
      */
     private function parseCliArguments(Command $class): void
     {
+        $class->setCliCommand($this->argv[1]);
         unset ($this->argv[0], $this->argv[1]);
 
         $parsedSignature = $this->parseCommandSignature($class);
@@ -141,6 +189,10 @@ class Cli
         $parsingArguments = true;
 
         foreach ($signature as $element) {
+            if (!$element) {
+                continue;
+            }
+
             if ($parsingArguments && str_starts_with($element, '-')) {
                 $parsingArguments = false;
             }
